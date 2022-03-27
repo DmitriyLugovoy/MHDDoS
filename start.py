@@ -62,6 +62,7 @@ class ProxyCheckerCustom(ProxyChecker):
             for proxy in proxies:
                 print('proxy.country:', proxy.country)
                 if proxy.country == 'UA':
+                    print('add proxy to future_to_proxy')
                     future_to_proxy[executor.submit(proxy.check, url, timeout)] = proxy
                     
             
@@ -69,8 +70,9 @@ class ProxyCheckerCustom(ProxyChecker):
             #     executor.submit(proxy.check, url, timeout): proxy
             #     for proxy in proxies if proxy.country == 'UA'
             # }
-
+            print('len(future_to_proxy): ', len(future_to_proxy))
             for future in as_completed(future_to_proxy):
+                print(future)
                 # print('future.running: ', future.running())
                 # if not future.running():
                 #     del future
