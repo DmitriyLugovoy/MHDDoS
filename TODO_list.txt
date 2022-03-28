@@ -1,0 +1,6 @@
+# TODO create prefer list by region using prefer_list_by_region.txt
+# 23-03-2022 16906 proxies
+
+start.py:1290 PyRoxy.ProxyChecker.checkAll()
+
+# TODO check ports
