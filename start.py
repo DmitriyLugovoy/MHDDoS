@@ -48,7 +48,7 @@ __dir__: Path = Path(__file__).parent
 __ip__: Any = None
 
 
-class ProxyCheckerCustom(ProxyChecker):
+class ProxyCheckerCustom:
     @staticmethod
     def checkAll(proxies: Collection[Proxy],
                  url: Any = "https://httpbin.org/get",
