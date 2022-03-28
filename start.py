@@ -61,7 +61,7 @@ class ProxyCheckerCustom(ProxyChecker):
             future_to_proxy = dict()
             for proxy in proxies:
                 print('proxy.country:', proxy.country)
-                if proxy.country == 'UA':
+                if proxy.country == 'US':
                     print('add proxy to future_to_proxy')
                     future_to_proxy[executor.submit(proxy.check, url, timeout)] = proxy
                     
@@ -70,25 +70,19 @@ class ProxyCheckerCustom(ProxyChecker):
             #     executor.submit(proxy.check, url, timeout): proxy
             #     for proxy in proxies if proxy.country == 'UA'
             # }
-            print('len(future_to_proxy): ', len(future_to_proxy))
-            for future in as_completed(future_to_proxy):
-                print(future)
-                # print('future.running: ', future.running())
-                # if not future.running():
-                #     del future
-                #     print('future was deleted')
-                #     continue
-                if future.exception():
-                    print('future.exception: ', future.exception)
-                if future.result():
-                    # future_to_proxy[future]
-                    print('future.result :', future.result())
+            # print('len(future_to_proxy): ', len(future_to_proxy))
+            # for future in as_completed(future_to_proxy):
+            #     print('future.result():', future.result())
+            #     if future.result():
+            #         future_to_proxy[future] :
+            
 
             proxyes = {
                 future_to_proxy[future]
                 for future in as_completed(future_to_proxy) if future.result()
             }
             
+            print('type(proxyes):', type(proxyes))
             return proxyes
 
 
