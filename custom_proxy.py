@@ -202,9 +202,10 @@ class ProxyCheckerCustom:
             future_to_proxy = dict()
             for proxy in proxies:
                 print('proxy.country:', proxy.country)
-                if proxy.country == 'UA':  # TODO create prefer list by region using prefer_list_by_region.txt
-                    print('add proxy to future_to_proxy')
-                    future_to_proxy[executor.submit(proxy.check_custom, url, timeout)] = proxy
+                # if proxy.country == 'UA':  # TODO create prefer list by region using prefer_list_by_region.txt
+                #     print('add proxy to future_to_proxy')
+                #     future_to_proxy[executor.submit(proxy.check_custom, url, timeout)] = proxy
+                future_to_proxy[executor.submit(proxy.check_custom, url, timeout)] = proxy
             
             proxies_set = set()
             for future in as_completed(future_to_proxy):
