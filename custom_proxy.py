@@ -7,7 +7,7 @@ from pathlib import Path
 from socket import socket, SOCK_STREAM, AF_INET, gethostbyname
 from typing import AnyStr, Set, Collection, Any
 
-from socks import socksocket, SOCKS4, SOCKS5, HTTP
+from socks import socksocket, SOCKS4, SOCKS5, HTTP, SOCKS4_ERRORS
 from yarl import URL
 
 from PyRoxy import GeoIP, Tools
@@ -125,6 +125,19 @@ class Proxy(object):
                 sock.connect((url.host, url.port or 80))
                 return True
         return False
+    
+    def check_custom(self, url: Any = "https://httpbin.org/get", timeout=5):
+        if not isinstance(url, URL):
+            url = URL(url)
+        try:
+            with self.open_socket() as sock:
+                sock.settimeout(timeout)
+                sock.connect((url.host, url.port or 80))
+                return True
+        except Exception as e:
+            print(type(e))
+            print(e)
+            return False
 
 
 # noinspection PyShadowingBuiltins
@@ -191,7 +204,7 @@ class ProxyCheckerCustom:
                 print('proxy.country:', proxy.country)
                 if proxy.country == 'UA':  # TODO create prefer list by region using prefer_list_by_region.txt
                     print('add proxy to future_to_proxy')
-                    future_to_proxy[executor.submit(proxy.check, url, timeout)] = proxy
+                    future_to_proxy[executor.submit(proxy.check_custom, url, timeout)] = proxy
             
             proxies_set = set()
             for future in as_completed(future_to_proxy):
