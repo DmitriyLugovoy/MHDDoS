@@ -24,7 +24,9 @@ from typing import Any, List, Set, Tuple, Collection
 from urllib import parse
 from uuid import UUID, uuid4
 
-from PyRoxy import Proxy, ProxyChecker, ProxyType, ProxyUtiles
+
+# from PyRoxy import Proxy, ProxyChecker, ProxyType, ProxyUtiles
+from custom_proxy import Proxy, ProxyChecker, ProxyCheckerCustom, ProxyType, ProxyUtiles
 from PyRoxy import Tools as ProxyTools
 from certifi import where
 from cfscrape import create_scraper
@@ -46,30 +48,6 @@ ctx.verify_mode = CERT_NONE
 __version__: str = "2.4 SNAPSHOT"
 __dir__: Path = Path(__file__).parent
 __ip__: Any = None
-
-
-class ProxyCheckerCustom:
-    @staticmethod
-    def checkAll(proxies: Collection[Proxy],
-                 url: Any = "https://httpbin.org/get",
-                 timeout=5,
-                 threads=1000):
-        with ThreadPoolExecutor(
-                max(min(round(len(proxies) * cpu_count()), threads),
-                    1)) as executor:
-    
-            future_to_proxy = dict()
-            for proxy in proxies:
-                print('proxy.country:', proxy.country)
-                if proxy.country == 'US':
-                    print('add proxy to future_to_proxy')
-                    future_to_proxy[executor.submit(proxy.check, url, timeout)] = proxy
-
-            proxyes = set()
-            for future in as_completed(future_to_proxy):
-                if future.result():
-                    proxyes.add(future_to_proxy[future])
-            return proxyes
 
 
 def getMyIPAddress():
@@ -1318,7 +1296,7 @@ def handleProxyList(con, proxy_li, proxy_ty, url=None):
                 f"{len(Proxies):,} Proxies are getting checked, this may take awhile!"
             )
             Proxies = ProxyCheckerCustom.checkAll(
-                Proxies, timeout=1, threads=threads,
+                Proxies, timeout=10, threads=threads,
                 url=url.human_repr() if url else "http://httpbin.org/get",
             )
 
